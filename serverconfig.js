@@ -1,3 +1,4 @@
 module.exports={
 	serverPath:"rageServer.js",
-	clientFolder:'htmlRage'}
+	standAlonePort:8080,
+	keepsockets:true}
