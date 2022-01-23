@@ -3,46 +3,41 @@
 // crown over the leader
 // fix the board stretching
 // make the code more object oriented
-var comms = require("../template files for games/comunicationModule.js")
-serverconfigObject=require('./serverconfig.js')
-var io = comms.createServer(serverconfigObject,(gameID)=>{return gameStatus==gameMode.LOBBY});
 
-
+var express = require("express");
+var http = require("http");
+var io = require("socket.io");
+var mysql = require('mysql');
 
 //const spawn = require("child_process").spawn;
 
-var app = comms.clientfiles();
-app.use("./htmlRage"); //working directory
-app.use("./IPconfiguration"); //working directory
-
+var app = express();
+app.use(express.static("./htmlRage")); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
-
+var socket = 8080;
+//var server = http.createServer(app).listen(8080); //Server listens on the port 8124
+var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
+io = io.listen(server);
 /*initializing the websockets communication , server instance has to be sent as the argument */
-var useDatabase = true;
-try{
-	
-	var mysql = require('mysql');
+
+
 // DATABASE
-	var con = mysql.createConnection({
-	  host: "localhost",
-	  user: "root",
-	  password: "",
-	  database: "rage"
-	});
+var con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "rage"
+});
 
-	//var useDatabase = true;
-	con.connect(function(err) {
-	  //if (err) throw err;
-	  console.warn("Error connecting to MYSQL server. Scores will not be recorded");
-	  useDatabase = false;
-	});
+var useDatabase = true;
+con.connect(function(err) {
+  //if (err) throw err;
+  console.warn("Error connecting to MYSQL server. Scores will not be recorded");
+  useDatabase = false;
+});
 
-	var gameId = -1; //game id for database
-}catch{
-	useDatabase = false;
-	console.log('no database present')
-}
+var gameId = -1; //game id for database
 
 
 // END DATABASE
@@ -50,7 +45,6 @@ try{
 var minPlayers = 2;
 var maxPlayers = 9; //must increase card number for more players
 var numberOfRounds = 10;
-var reduceRoundsBy=2;
 
 var allClients = [];
 var players = [];
@@ -177,7 +171,7 @@ io.sockets.on("connection", function(socket) {
 		console.log(__line, "oldID:", id);
 		for(var i = 0; i < players.length; i++){
 			if(players[i].id == id){
-				console.log(__line, "found old player!", players[i].userData.userName, socket.userData.userName);
+				console.log(__line, "found old player!", players[i].userData.username, socket.userData.userName);
 				var j = spectators.indexOf(socket);
 				if(j >= 0){spectators.splice(j, 1)};
 				socket.userData = players[i].userData;
@@ -455,9 +449,8 @@ function gameStart() {
 			}
 			//console.log(__line, "game id result: ", gameId);
 		}
-		if(database){
-			con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
-		}
+	
+		con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
 	}
 
 	
@@ -851,7 +844,7 @@ function addHandScoreToTotal(){
 }
 
 function finishRound() {
-        currentRound -= reduceRoundsBy;
+    currentRound -= 1;
     if( currentRound > 0) {
         startRound();
     } else {
